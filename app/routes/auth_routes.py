@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, Form
 from pydantic import BaseModel
-
+from fastapi.responses import JSONResponse
 from app.controllers.auth_controller import AuthController
 from app.middleware.auth_middleware import require_auth
 
