@@ -168,4 +168,4 @@ instance/*
 .webassets-cache
 .env
 
-firebase_config.json
+config/firebase_config.json
