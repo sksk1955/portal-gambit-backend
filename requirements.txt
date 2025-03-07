@@ -3,3 +3,7 @@ fastapi
 uvicorn
 pydantic
 python-dotenv
+python-jose[cryptography]
+python-multipart
+email-validator
+httpx
