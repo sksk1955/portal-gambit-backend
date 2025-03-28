@@ -21,4 +21,4 @@ RUN chmod +x config/convert.sh
 EXPOSE 8080
 
 # Command to run the application
-CMD bash -c "config/convert.sh \"$FIREBASE_CONFIG_STRING\" config/firebase_service_account.json && exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"
+CMD bash -c "config/convert.sh FIREBASE_CONFIG_STRING config/firebase_service_account.json && exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"
