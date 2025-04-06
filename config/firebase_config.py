@@ -2,7 +2,6 @@ import os
 
 import firebase_admin
 from dotenv import load_dotenv
-from firebase_admin import credentials
 from google.cloud.firestore_v1.async_client import AsyncClient
 
 # Load environment variables
@@ -24,7 +23,7 @@ def initialize_firebase():
                                          'config/firebase_service_account.json')  # Default path
 
         if os.path.exists(service_account_path):
-            cred = credentials.Certificate(service_account_path)
+            cred = firebase_admin.credentials.Certificate(service_account_path)
             print(f"Initializing Firebase from path: {service_account_path}...")
         else:
             raise ValueError(
