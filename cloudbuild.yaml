@@ -1,0 +1,44 @@
+steps:
+  # Step 1: Print Secret Info (Without Exposing Values)
+  - name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        echo "✅ Checking secrets..."
+        echo "JWT_SECRET_KEY is set: ${JWT_SECRET_KEY:+YES}"
+        echo "FIREBASE_CONFIG_STRING length: ${#FIREBASE_CONFIG_STRING}"
+
+    secretEnv:
+      - JWT_SECRET_KEY
+      - FIREBASE_CONFIG_STRING
+
+  # Step 2: Build Docker Image
+  - name: gcr.io/cloud-builders/docker
+    args: [ "build", "-t", "asia-south1-docker.pkg.dev/portal-gambit/cloud-run-source-deploy/portal-gambit-backend/portal-gambit-backend:$SHORT_SHA", "." ]
+
+  # Step 3: Push Image to Artifact Registry
+  - name: gcr.io/cloud-builders/docker
+    args: [ "push", "asia-south1-docker.pkg.dev/portal-gambit/cloud-run-source-deploy/portal-gambit-backend/portal-gambit-backend:$SHORT_SHA" ]
+
+  # Step 4: Deploy to Cloud Run
+  - name: gcr.io/cloud-builders/gcloud
+    args:
+      - run
+      - deploy
+      - portal-gambit-backend
+      - --image=asia-south1-docker.pkg.dev/portal-gambit/cloud-run-source-deploy/portal-gambit-backend/portal-gambit-backend:$SHORT_SHA
+      - --region=asia-south1
+      - --platform=managed
+      - --allow-unauthenticated
+      - --set-secrets=JWT_SECRET_KEY=JWT_SECRET_KEY:latest,FIREBASE_CONFIG_STRING=FIREBASE_CONFIG_STRING:latest
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/JWT_SECRET_KEY/versions/latest
+      env: "JWT_SECRET_KEY"
+    - versionName: projects/$PROJECT_ID/secrets/FIREBASE_CONFIG_STRING/versions/latest
+      env: "FIREBASE_CONFIG_STRING"
+
+images:
+  - "asia-south1-docker.pkg.dev/portal-gambit/cloud-run-source-deploy/portal-gambit-backend/portal-gambit-backend:$SHORT_SHA"

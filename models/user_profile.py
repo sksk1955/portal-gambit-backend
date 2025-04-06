@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone  # Import timezone
+
 
 class UserProfile(BaseModel):
     uid: str = Field(..., description="Firebase User ID")
@@ -13,8 +14,10 @@ class UserProfile(BaseModel):
     wins: int = Field(default=0)
     losses: int = Field(default=0)
     draws: int = Field(default=0)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    last_active: datetime = Field(default_factory=datetime.utcnow)
+    # FIX: Use datetime.now(timezone.utc) for default factory
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # FIX: Use datetime.now(timezone.utc) for default factory
+    last_active: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     friends: List[str] = Field(default_factory=list, description="List of friend UIDs")
     achievements: List[str] = Field(default_factory=list)
     preferences: dict = Field(default_factory=dict)
@@ -32,4 +35,4 @@ class UserProfile(BaseModel):
                 "losses": 0,
                 "draws": 0
             }
-        } 
+        }

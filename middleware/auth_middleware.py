@@ -1,18 +1,32 @@
+# middleware/auth_middleware.py
+
+import logging
+import re
+from typing import Optional, List
+
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional, List
-import re
+from starlette import status
+# Import Response and JSONResponse
+from starlette.responses import JSONResponse
+
 from utils.jwt_utils import verify_token
 
 security = HTTPBearer()
+logger = logging.getLogger(__name__)
+
 
 class FirebaseAuthMiddleware:
     def __init__(self, app, exclude_paths: Optional[List[str]] = None):
         """Initialize middleware with optional paths to exclude from authentication."""
         self.app = app
         default_exclude_paths = [
-            r"^/auth/token$",  # Exclude the token endpoint
-            # Add any other paths that should be public
+            r"^/auth/token$",
+            r"^/$",
+            r"^/docs$",
+            r"^/openapi.json$",
+            r"^/redoc$",
+            r"^/favicon\.ico$",
         ]
         self.exclude_paths = (exclude_paths or []) + default_exclude_paths
         self.exclude_patterns = [re.compile(pattern) for pattern in self.exclude_paths]
@@ -20,44 +34,42 @@ class FirebaseAuthMiddleware:
     async def __call__(self, scope, receive, send):
         """Process each request through the middleware."""
         if scope["type"] != "http":
-            return await self.app(scope, receive, send)
+            await self.app(scope, receive, send)
+            return
 
         request = Request(scope, receive=receive)
-        
-        # Check if path should be excluded from authentication
         path = request.url.path
-        if any(pattern.match(path) for pattern in self.exclude_patterns):
-            return await self.app(scope, receive, send)
 
-        # Skip authentication for OPTIONS requests (CORS preflight)
-        if request.method == "OPTIONS":
-            return await self.app(scope, receive, send)
+        if any(pattern.match(path) for pattern in self.exclude_patterns) or request.method == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
 
+        # --- Explicitly handle potential exceptions from security() and verify_token() ---
         try:
-            # Get the Authorization header
             credentials: HTTPAuthorizationCredentials = await security(request)
             token = credentials.credentials
+            decoded_token = verify_token(token)
+            request.state.user = decoded_token
+            # Proceed only if token is valid
+            await self.app(scope, receive, send)
 
-            # Verify the JWT token
-            try:
-                decoded_token = verify_token(token)
-                # Add the decoded token to request state
-                request.state.user = decoded_token
-            except Exception as e:
-                raise HTTPException(
-                    status_code=401,
-                    detail=f"Invalid authentication credentials: {str(e)}",
-                    headers={"WWW-Authenticate": "Bearer"}
-                )
+        except HTTPException as http_exc:
+            # If security() or verify_token() raised an HTTPException (403 or 401),
+            # construct and send the response manually.
+            response = JSONResponse(
+                status_code=http_exc.status_code,
+                content={"detail": http_exc.detail},
+                headers=http_exc.headers,  # Include headers like WWW-Authenticate
+            )
+            await response(scope, receive, send)
+            return  # Stop processing here
 
-            # Continue processing the request
-            return await self.app(scope, receive, send)
-
-        except HTTPException as http_ex:
-            raise http_ex
         except Exception as e:
-            raise HTTPException(
-                status_code=401,
-                detail="Authentication failed",
-                headers={"WWW-Authenticate": "Bearer"}
-            ) 
+            # Catch any other unexpected errors during the auth process
+            logger.exception(f"Unexpected error during authentication middleware for path {path}: {e}")
+            response = JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content={"detail": "Internal Server Error during authentication process"},
+            )
+            await response(scope, receive, send)
+            return  # Stop processing here

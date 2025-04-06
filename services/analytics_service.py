@@ -1,8 +1,11 @@
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Any
+
 from firebase_admin import firestore
-from typing import Dict, Any, List, Optional
-from .base_service import BaseService
-from datetime import datetime, timedelta
+
 from models.game_history import GameResult
+from .base_service import BaseService
+
 
 class AnalyticsService(BaseService):
     def __init__(self, db: firestore.Client):
@@ -14,7 +17,7 @@ class AnalyticsService(BaseService):
         """Record analytics data for a completed game."""
         analytics_id = f"game_{game_data['game_id']}"
         analytics = {
-            'timestamp': datetime.utcnow(),
+            'timestamp': datetime.now(timezone.utc),
             'game_id': game_data['game_id'],
             'duration': (game_data['end_time'] - game_data['start_time']).total_seconds(),
             'total_moves': len(game_data['moves']),
@@ -93,7 +96,7 @@ class AnalyticsService(BaseService):
 
     async def get_player_performance(self, user_id: str, days: int = 30) -> Dict[str, Any]:
         """Get detailed performance analytics for a player."""
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         filters = [
             [('white_player_id', '==', user_id), ('timestamp', '>=', start_date)],
@@ -175,7 +178,7 @@ class AnalyticsService(BaseService):
         
         # Return cached stats if less than 1 hour old
         if cached_stats and \
-           (datetime.utcnow() - cached_stats['last_updated']).total_seconds() < 3600:
+           (datetime.now(timezone.utc) - cached_stats['last_updated']).total_seconds() < 3600:
             return cached_stats
         
         # Calculate new stats
@@ -192,7 +195,7 @@ class AnalyticsService(BaseService):
             'average_moves_per_game': 0,
             'popular_time_controls': {},
             'popular_game_types': {},
-            'last_updated': datetime.utcnow()
+            'last_updated': datetime.now(timezone.utc)
         }
         
         if not results:
@@ -231,4 +234,4 @@ class AnalyticsService(BaseService):
         # Cache the results
         await self.set_document(self.cache_collection, cache_key, stats)
         
-        return stats 
+        return stats

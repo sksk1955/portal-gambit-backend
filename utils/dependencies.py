@@ -1,14 +1,13 @@
-from fastapi import Header, HTTPException, Depends, Security
+from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from firebase_admin import auth, credentials, firestore
-from typing import Optional
+
 from config.firebase_config import initialize_firebase
-from services.profile_service import ProfileService
+from schemas.auth_schemas import TokenData
+from services.analytics_service import AnalyticsService
 from services.friend_service import FriendService
 from services.history_service import HistoryService
-from services.analytics_service import AnalyticsService
+from services.profile_service import ProfileService
 from utils.jwt_utils import verify_token
-from schemas.auth_schemas import TokenData
 
 # Initialize Firebase and get Firestore client
 db_client = initialize_firebase()
@@ -21,6 +20,7 @@ analytics_service = AnalyticsService(db_client)
 
 # Security scheme
 security = HTTPBearer()
+
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)) -> TokenData:
     """Verify JWT token and return user data."""
@@ -38,18 +38,22 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             headers={"WWW-Authenticate": "Bearer"}
         )
 
+
 def get_profile_service() -> ProfileService:
     """Dependency for profile service."""
     return profile_service
+
 
 def get_friend_service() -> FriendService:
     """Dependency for friend service."""
     return friend_service
 
+
 def get_history_service() -> HistoryService:
     """Dependency for history service."""
     return history_service
 
+
 def get_analytics_service() -> AnalyticsService:
     """Dependency for analytics service."""
-    return analytics_service 
+    return analytics_service

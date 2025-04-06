@@ -80,7 +80,6 @@ target/
 .ipynb_checkpoints
 
 # IPython
-profile_default/
 ipython_config.py
 
 # pyenv
@@ -165,7 +164,8 @@ cython_debug/
 ### Flask template
 instance/*
 !instance/.gitignore
-.webassets-cache
-.env
 
 config/firebase_config.json
+output.json
+/config/firebase_service_account.json
+repo_contents.txt

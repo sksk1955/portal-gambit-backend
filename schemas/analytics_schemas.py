@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Dict, Any, Optional, List
+
+from pydantic import BaseModel
+
 
 class GameAnalyticsCreate(BaseModel):
     """Schema for creating game analytics."""
@@ -15,6 +17,7 @@ class GameAnalyticsCreate(BaseModel):
     game_type: str
     time_control: Dict[str, int]
 
+
 class DailyStats(BaseModel):
     """Schema for daily statistics."""
     total_games: int
@@ -27,6 +30,7 @@ class DailyStats(BaseModel):
     game_types: Dict[str, int]
     time_controls: Dict[str, int]
 
+
 class PlayerPerformance(BaseModel):
     """Schema for player performance statistics."""
     rating_progression: List[Dict[str, Any]]
@@ -36,6 +40,7 @@ class PlayerPerformance(BaseModel):
     win_rate: float
     performance_by_color: Dict[str, Dict[str, int]]
     average_moves_per_game: float
+
 
 class GlobalStats(BaseModel):
     """Schema for global game statistics."""
@@ -47,7 +52,8 @@ class GlobalStats(BaseModel):
     popular_game_types: Dict[str, int]
     last_updated: datetime
 
+
 class AnalyticsResponse(BaseModel):
     """Schema for generic analytics operation response."""
     status: str
-    message: Optional[str] = None 
+    message: Optional[str] = None
