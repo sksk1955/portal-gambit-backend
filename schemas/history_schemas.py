@@ -1,5 +1,7 @@
+from typing import Optional
+
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+
 
 class GameHistoryParams(BaseModel):
     """Schema for game history query parameters."""

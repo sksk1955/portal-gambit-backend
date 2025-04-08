@@ -15,7 +15,33 @@ class HistoryService(BaseService):
     async def archive_game(self, game: GameHistory) -> bool:
         """Archive a completed game."""
         # FIX: Use model_dump() instead of dict()
-        return await self.set_document(self.collection, game.game_id, game.model_dump())
+        success = await self.set_document(self.collection, game.game_id, game.model_dump())
+        
+        # If game was successfully archived, update player profiles
+        if success:
+            # Get profile service
+            from services.profile_service import ProfileService
+            profile_service = ProfileService(self.db)
+            
+            # Update white player profile
+            white_result = {'result': 'win' if game.result == GameResult.WHITE_WIN else 
+                                      'loss' if game.result == GameResult.BLACK_WIN else 'draw'}
+            await profile_service.update_rating(
+                game.white_player_id, 
+                game.white_rating + game.rating_change.get('white', 0), 
+                white_result
+            )
+            
+            # Update black player profile
+            black_result = {'result': 'win' if game.result == GameResult.BLACK_WIN else 
+                                      'loss' if game.result == GameResult.WHITE_WIN else 'draw'}
+            await profile_service.update_rating(
+                game.black_player_id, 
+                game.black_rating + game.rating_change.get('black', 0), 
+                black_result
+            )
+        
+        return success
 
     async def get_game(self, game_id: str) -> Optional[GameHistory]:
         """Retrieve a specific game by ID."""
