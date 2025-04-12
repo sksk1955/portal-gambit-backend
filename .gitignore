@@ -169,3 +169,6 @@ config/firebase_config.json
 output.json
 /config/firebase_service_account.json
 repo_contents.txt
+results*
+*.prof
+*.patch
