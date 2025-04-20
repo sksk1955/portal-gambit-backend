@@ -5,7 +5,7 @@ from google.cloud import firestore
 
 from models.game_history import GameHistory, GameResult
 from .base_service import BaseService
-
+from services.profile_service import ProfileService  # Import at class level
 
 class HistoryService(BaseService):
     def __init__(self, db: firestore.AsyncClient):
@@ -19,25 +19,36 @@ class HistoryService(BaseService):
         
         # If game was successfully archived, update player profiles
         if success:
-            # Get profile service
-            from services.profile_service import ProfileService
+            # Create profile service
             profile_service = ProfileService(self.db)
+            
+            # Fetch current player profiles to get accurate ratings
+            white_profile = await profile_service.get_profile(game.white_player_id)
+            black_profile = await profile_service.get_profile(game.black_player_id)
+            
+            # Use current ratings from profiles if available, otherwise use game data
+            white_current_rating = white_profile.rating if white_profile else game.white_rating
+            black_current_rating = black_profile.rating if black_profile else game.black_rating
+            
+            # Calculate new ratings with rating changes
+            white_new_rating = white_current_rating + game.rating_change.get('white', 0)
+            black_new_rating = black_current_rating + game.rating_change.get('black', 0)
             
             # Update white player profile
             white_result = {'result': 'win' if game.result == GameResult.WHITE_WIN else 
-                                      'loss' if game.result == GameResult.BLACK_WIN else 'draw'}
+                                     'loss' if game.result == GameResult.BLACK_WIN else 'draw'}
             await profile_service.update_rating(
                 game.white_player_id, 
-                game.white_rating + game.rating_change.get('white', 0), 
+                white_new_rating, 
                 white_result
             )
             
             # Update black player profile
             black_result = {'result': 'win' if game.result == GameResult.BLACK_WIN else 
-                                      'loss' if game.result == GameResult.WHITE_WIN else 'draw'}
+                                     'loss' if game.result == GameResult.WHITE_WIN else 'draw'}
             await profile_service.update_rating(
                 game.black_player_id, 
-                game.black_rating + game.rating_change.get('black', 0), 
+                black_new_rating, 
                 black_result
             )
         
